@@ -85,6 +85,8 @@ class GameFunctions final : LuaScriptInterface {
 				registerMethod(L, "Game", "hasDistanceEffect", GameFunctions::luaGameHasDistanceEffect);
 				registerMethod(L, "Game", "hasEffect", GameFunctions::luaGameHasEffect);
 				registerMethod(L, "Game", "getOfflinePlayer", GameFunctions::luaGameGetOfflinePlayer);
+
+				registerMethod(L, "Game", "createUniverse", GameFunctions::luaGameCreateUniverse);
 			}
 
 	private:
@@ -140,6 +142,8 @@ class GameFunctions final : LuaScriptInterface {
 			static int luaGameItemidHasMoveevent(lua_State* L);
 			static int luaGameHasEffect(lua_State* L);
 			static int luaGameHasDistanceEffect(lua_State* L);
+
+		static int luaGameCreateUniverse(lua_State* L);
 };
 
 #endif  // SRC_LUA_FUNCTIONS_CORE_GAME_GAME_FUNCTIONS_HPP_

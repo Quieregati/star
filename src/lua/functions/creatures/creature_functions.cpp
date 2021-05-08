@@ -941,3 +941,22 @@ int CreatureFunctions::luaCreatureGetZone(lua_State* L) {
 	}
 	return 1;
 }
+
+int CreatureFunctions::luaCreatureAddToUniverse(lua_State* L) {
+	// creature:addToUniverse(universe)
+	Creature* creature = getUserdata<Creature>(L, 1);
+	if (!creature) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	universe_t universeId = getNumber<universe_t>(L, 2, DEFAULT_UNIVERSE_ID);
+	if (!creature->addToUniverse(universeId)) {
+		reportErrorFunc("Invalid universe specified.");
+		pushBoolean(L, false);
+		return 1;
+	}
+
+	pushBoolean(L, true);
+	return 1;
+}

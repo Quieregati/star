@@ -512,6 +512,8 @@ class Creature : virtual public Thing
 			}
 		}
 
+		bool addToUniverse(universe_t universe);
+
 	protected:
 		virtual bool useCacheMap() const {
 			return false;

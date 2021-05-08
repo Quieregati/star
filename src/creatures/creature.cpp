@@ -1678,3 +1678,10 @@ void Creature::turnToCreature(Creature* creature)
 	}
 	g_game.internalCreatureTurn(this, dir);
 }
+
+bool Creature::addToUniverse(universe_t universe)
+{
+	if (!g_game.doesUniverseExist(universe)) return false;
+	position.setUniverse(universe);
+	return true;
+}

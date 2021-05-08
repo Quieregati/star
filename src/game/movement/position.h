@@ -38,6 +38,8 @@ enum Direction : uint8_t {
 	DIRECTION_NONE = 8,
 };
 
+#define DEFAULT_UNIVERSE_ID 0
+#define MULTIVERSE_SIZE 255
 #define universe_t uint8_t
 
 struct Position
@@ -78,7 +80,7 @@ struct Position
 	}
 
 	static bool areInSameUniverse(const Position& p1, const Position& p2) {
-		return p1.universe == p2.universe;
+		return p1.getUniverse() == p2.getUniverse();
 	}
 
 	static Direction getRandomDirection();
@@ -86,12 +88,6 @@ struct Position
 	uint16_t x = 0;
 	uint16_t y = 0;
 	uint8_t z = 0;
-
-	/*
-	 * Universe is an extra dimension that allow a same bit of map be used
-	 * for different contexts, with fully isolated scopes.
-	 */
-	universe_t universe = 0;
 
 	bool operator<(const Position& p) const {
 		if (z < p.z) {
@@ -157,6 +153,16 @@ struct Position
 	int_fast32_t getX() const { return x; }
 	int_fast32_t getY() const { return y; }
 	int_fast16_t getZ() const { return z; }
+
+	universe_t getUniverse() const { return universe; }
+	void setUniverse(universe_t newUniverse) { universe = newUniverse; }
+
+private:
+		/*
+		 * Universe is an extra dimension that allow a same bit of map be used
+		 * for different contexts, with fully isolated scopes.
+		 */
+		universe_t universe = DEFAULT_UNIVERSE_ID;
 };
 
 std::ostream& operator<<(std::ostream&, const Position&);

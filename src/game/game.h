@@ -542,6 +542,30 @@ class Game
 			return CharmList;
 		}
 
+		universe_t createUniverse(universe_t universeId = DEFAULT_UNIVERSE_ID) {
+			if (universeId != DEFAULT_UNIVERSE_ID && !doesUniverseExist(universeId)) {
+				multiverse.insert(universeId);
+				return universeId;
+			}
+
+			for (int index = 1; index <= MULTIVERSE_SIZE; index++) {
+				if (doesUniverseExist(index)) {
+					continue;
+				}
+
+				multiverse.insert(index);
+				return index;
+			}
+
+			/* If multiverse is full, uses default universe */
+			return DEFAULT_UNIVERSE_ID;
+		}
+
+		bool doesUniverseExist(universe_t universe) {
+			if (universe == DEFAULT_UNIVERSE_ID) return true;
+			return multiverse.find(universe) != multiverse.end();
+		}
+
 	private:
 		void checkImbuements();
 		bool playerSaySpell(Player* player, SpeakClasses type, const std::string& text);
