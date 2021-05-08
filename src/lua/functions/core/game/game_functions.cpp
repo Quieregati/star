@@ -654,6 +654,6 @@ int GameFunctions::luaGameGetOfflinePlayer(lua_State* L) {
 }
 
 int GameFunctions::luaGameCreateUniverse(lua_State* L) {
-	lua_pushnumber(L, g_game.createUniverse(getNumber<universe_t>(L, 2, DEFAULT_UNIVERSE_ID)));
+	lua_pushnumber(L, g_game.createUniverse(getNumber<universe_t>(L, 1, DEFAULT_UNIVERSE_ID)));
 	return 1;
 }
