@@ -357,6 +357,11 @@ void Map::getSpectatorsInternal(SpectatorHashSet& spectators, const Position& ce
 				const CreatureVector& node_list = (onlyPlayers ? leafE->player_list : leafE->creature_list);
 				for (Creature* creature : node_list) {
 					const Position& cpos = creature->getPosition();
+
+					if (!Position::areInSameUniverse(cpos, centerPos)) {
+						continue;
+					}
+
 					if (minRangeZ > cpos.z || maxRangeZ < cpos.z) {
 						continue;
 					}

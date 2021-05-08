@@ -38,18 +38,22 @@ enum Direction : uint8_t {
 	DIRECTION_NONE = 8,
 };
 
+#define universe_t uint8_t
+
 struct Position
 {
 	constexpr Position() = default;
-	constexpr Position(uint16_t initX, uint16_t initY, uint8_t initZ) : x(initX), y(initY), z(initZ) {}
+		constexpr Position(uint16_t initX, uint16_t initY, uint8_t initZ) : x(initX), y(initY), z(initZ) {}
 
 	template<int_fast32_t deltax, int_fast32_t deltay>
 	static bool areInRange(const Position& p1, const Position& p2) {
+		if (!areInSameUniverse(p1, p2)) return false;
 		return Position::getDistanceX(p1, p2) <= deltax && Position::getDistanceY(p1, p2) <= deltay;
 	}
 
 	template<int_fast32_t deltax, int_fast32_t deltay, int_fast16_t deltaz>
 	static bool areInRange(const Position& p1, const Position& p2) {
+		if (!areInSameUniverse(p1, p2)) return false;
 		return Position::getDistanceX(p1, p2) <= deltax && Position::getDistanceY(p1, p2) <= deltay && Position::getDistanceZ(p1, p2) <= deltaz;
 	}
 
@@ -73,11 +77,21 @@ struct Position
 		return std::abs(Position::getOffsetZ(p1, p2));
 	}
 
+	static bool areInSameUniverse(const Position& p1, const Position& p2) {
+		return p1.universe == p2.universe;
+	}
+
 	static Direction getRandomDirection();
 
 	uint16_t x = 0;
 	uint16_t y = 0;
 	uint8_t z = 0;
+
+	/*
+	 * Universe is an extra dimension that allow a same bit of map be used
+	 * for different contexts, with fully isolated scopes.
+	 */
+	universe_t universe = 0;
 
 	bool operator<(const Position& p) const {
 		if (z < p.z) {
@@ -112,11 +126,11 @@ struct Position
 	}
 
 	bool operator==(const Position& p) const {
-		return p.x == x && p.y == y && p.z == z;
+		return p.x == x && p.y == y && p.z == z && areInSameUniverse(p, *this);
 	}
 
 	bool operator!=(const Position& p) const {
-		return p.x != x || p.y != y || p.z != z;
+		return p.x != x || p.y != y || p.z != z || !areInSameUniverse(p, *this);
 	}
 
 	Position operator+(const Position& p1) const {
@@ -135,7 +149,9 @@ struct Position
                   .append(std::to_string(getY()))
                   .append(" / ")
                   .append(std::to_string(getZ()))
-                  .append(" )");
+                  .append(" ) (")
+									.append(std::to_string(universe))
+									.append(")");
 	}
 
 	int_fast32_t getX() const { return x; }

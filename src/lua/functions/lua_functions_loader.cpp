@@ -292,6 +292,7 @@ Position LuaFunctionsLoader::getPosition(lua_State* L, int32_t arg, int32_t& sta
 	position.x = getField<uint16_t>(L, arg, "x");
 	position.y = getField<uint16_t>(L, arg, "y");
 	position.z = getField<uint8_t>(L, arg, "z");
+	position.universe = getField<universe_t>(L, arg, "universe");
 
 	lua_getfield(L, arg, "stackpos");
 	if (lua_isnil(L, -1) == 1) {
@@ -460,11 +461,12 @@ void LuaFunctionsLoader::pushInstantSpell(lua_State* L, const InstantSpell& spel
 }
 
 void LuaFunctionsLoader::pushPosition(lua_State* L, const Position& position, int32_t stackpos/* = 0*/) {
-	lua_createtable(L, 0, 4);
+	lua_createtable(L, 0, 5);
 
 	setField(L, "x", position.x);
 	setField(L, "y", position.y);
 	setField(L, "z", position.z);
+	setField(L, "universe", position.universe);
 	setField(L, "stackpos", stackpos);
 
 	setMetatable(L, -1, "Position");

@@ -625,6 +625,8 @@ class Game
 
 		std::map<uint16_t, uint32_t> itemsPriceMap;
 		uint16_t itemsSaleCount;
+
+		std::unordered_set<universe_t> multiverse;
 };
 
 #endif  // SRC_GAME_GAME_H_
