@@ -1250,7 +1250,7 @@ void Game::playerMoveCreature(Player* player, Creature* movingCreature, const Po
 
 	if (!Position::areInRange<1, 1, 0>(movingCreatureOrigPos, player->getPosition())) {
 		//need to walk to the creature first before moving it
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(movingCreatureOrigPos, listDir, 0, 1, true, true)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 											this, player->getID(), listDir)));
@@ -1504,7 +1504,7 @@ void Game::playerMoveItem(Player* player, const Position& fromPos,
 
 	if (!Position::areInRange<1, 1>(playerPos, mapFromPos)) {
 		//need to walk to the item first before using it
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(item->getPosition(), listDir, 0, 1, true, true)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 											this, player->getID(), listDir)));
@@ -1565,7 +1565,7 @@ void Game::playerMoveItem(Player* player, const Position& fromPos,
 				internalGetPosition(moveItem, itemPos, itemStackPos);
 			}
 
-			std::forward_list<Direction> listDir;
+			std::vector<Direction> listDir;
 			if (player->getPathTo(walkPos, listDir, 0, 0, true, true)) {
 				g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 												this, player->getID(), listDir)));
@@ -1996,13 +1996,16 @@ ReturnValue Game::internalRemoveItem(Item* item, int32_t count /*= -1*/, bool te
 
 ReturnValue Game::internalPlayerAddItem(Player* player, Item* item, bool dropOnMap /*= true*/, Slots_t slot /*= CONST_SLOT_WHEREEVER*/)
 {
-	uint32_t remainderCount = 0;
-	ReturnValue ret = internalAddItem(player, item, static_cast<int32_t>(slot), 0, false, remainderCount);
-	if (remainderCount != 0) {
-		Item* remainderItem = Item::CreateItem(item->getID(), remainderCount);
-		ReturnValue remaindRet = internalAddItem(player->getTile(), remainderItem, INDEX_WHEREEVER, FLAG_NOLIMIT);
-		if (remaindRet != RETURNVALUE_NOERROR) {
-			ReleaseItem(remainderItem);
+	ReturnValue ret = RETURNVALUE_NOTPOSSIBLE;
+	if (item->isPickupable()) {
+		uint32_t remainderCount = 0;
+		ret = internalAddItem(player, item, static_cast<int32_t>(slot), 0, false, remainderCount);
+		if (remainderCount != 0) {
+			Item* remainderItem = Item::CreateItem(item->getID(), remainderCount);
+			ReturnValue remaindRet = internalAddItem(player->getTile(), remainderItem, INDEX_WHEREEVER, FLAG_NOLIMIT);
+			if (remaindRet != RETURNVALUE_NOERROR) {
+				ReleaseItem(remainderItem);
+			}
 			player->updateLootTracker(item);
 		}
 	}
@@ -2022,6 +2025,8 @@ Item* Game::findItemOfType(Cylinder* cylinder, uint16_t itemId,
 	}
 
 	std::vector<Container*> containers;
+	containers.reserve(32);
+
 	for (size_t i = cylinder->getFirstIndex(), j = cylinder->getLastIndex(); i < j; ++i) {
 		Thing* thing = cylinder->getThing(i);
 		if (!thing) {
@@ -2045,9 +2050,9 @@ Item* Game::findItemOfType(Cylinder* cylinder, uint16_t itemId,
 		}
 	}
 
-	size_t i = 0;
-	while (i < containers.size()) {
-		Container* container = containers[i++];
+	size_t i = static_cast<size_t>(-1);
+	while (++i < containers.size()) {
+		Container* container = containers[i];
 		for (Item* item : container->getItemList()) {
 			if (item->getID() == itemId && (subType == -1 || subType == item->getSubType())) {
 				return item;
@@ -2071,7 +2076,9 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 		return true;
 	}
 	std::vector<Container*> containers;
-	std::multimap<uint32_t, Item*> moneyMap;
+	std::vector<std::pair<uint32_t, Item*>> moneyMap;
+	moneyMap.reserve(32);
+
 	uint64_t moneyCount = 0;
 	for (size_t i = cylinder->getFirstIndex(), j = cylinder->getLastIndex(); i < j; ++i) {
 		Thing* thing = cylinder->getThing(i);
@@ -2089,24 +2096,33 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 			const uint32_t worth = item->getWorth();
 			if (worth != 0) {
 				moneyCount += worth;
-				moneyMap.emplace(worth, item);
+				moneyMap.emplace_back(worth, item);
 			}
 		}
 	}
-	size_t i = 0;
-	while (i < containers.size()) {
-		Container* container = containers[i++];
-		for (Item* item : container->getItemList()) {
-			Container* tmpContainer = item->getContainer();
-			if (tmpContainer) {
-				containers.push_back(tmpContainer);
-			} else {
-				const uint32_t worth = item->getWorth();
-				if (worth != 0) {
-					moneyCount += worth;
-					moneyMap.emplace(worth, item);
+
+	if (moneyCount < money) {
+		size_t i = static_cast<size_t>(-1);
+		while (++i < containers.size()) {
+			Container* container = containers[i];
+			for (Item* item : container->getItemList()) {
+				Container* tmpContainer = item->getContainer();
+				if (tmpContainer) {
+					containers.push_back(tmpContainer);
+				} else {
+					const uint32_t worth = item->getWorth();
+					if (worth != 0) {
+						moneyCount += worth;
+						moneyMap.emplace_back(worth, item);
+						if (moneyCount >= money) {
+							goto HaveMoney;
+						}
+					}
 				}
 			}
+		}
+		if (moneyCount < money) {
+			return false;
 		}
 	}
 
@@ -2120,6 +2136,7 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 		return false;
 	}
 
+	HaveMoney:
 	for (const auto& moneyEntry : moneyMap) {
 		Item* item = moneyEntry.second;
 		if (moneyEntry.first < money) {
@@ -2766,7 +2783,7 @@ void Game::playerMove(uint32_t playerId, Direction direction)
 	player->setNextWalkActionTask(nullptr);
 	player->cancelPush();
 
-	player->startAutoWalk(std::forward_list<Direction> { direction });
+	player->startAutoWalk(std::vector<Direction>{ direction });
 }
 
 bool Game::playerBroadcastMessage(Player* player, const std::string& text) const
@@ -2946,7 +2963,7 @@ void Game::playerReceivePingBack(uint32_t playerId)
 	player->sendPingBack();
 }
 
-void Game::playerAutoWalk(uint32_t playerId, const std::forward_list<Direction>& listDir)
+void Game::playerAutoWalk(uint32_t playerId, const std::vector<Direction>& listDir)
 {
 	Player* player = getPlayerByID(playerId);
 	if (!player) {
@@ -3029,7 +3046,7 @@ void Game::playerUseItemEx(uint32_t playerId, const Position& fromPos, uint8_t f
 				internalGetPosition(moveItem, itemPos, itemStackPos);
 			}
 
-			std::forward_list<Direction> listDir;
+			std::vector<Direction> listDir;
 			if (player->getPathTo(walkToPos, listDir, 0, 1, true, true)) {
 				g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk, this, player->getID(), listDir)));
 
@@ -3118,7 +3135,7 @@ void Game::playerUseItem(uint32_t playerId, const Position& pos, uint8_t stackPo
 	ReturnValue ret = g_actions->canUse(player, pos);
 	if (ret != RETURNVALUE_NOERROR) {
 		if (ret == RETURNVALUE_TOOFARAWAY) {
-			std::forward_list<Direction> listDir;
+			std::vector<Direction> listDir;
 			if (player->getPathTo(pos, listDir, 0, 1, true, true)) {
 				g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 												this, player->getID(), listDir)));
@@ -3237,7 +3254,7 @@ void Game::playerUseWithCreature(uint32_t playerId, const Position& fromPos, uin
 				internalGetPosition(moveItem, itemPos, itemStackPos);
 			}
 
-			std::forward_list<Direction> listDir;
+			std::vector<Direction> listDir;
 			if (player->getPathTo(walkToPos, listDir, 0, 1, true, true)) {
 				g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 												this, player->getID(), listDir)));
@@ -3383,7 +3400,7 @@ void Game::playerRotateItem(uint32_t playerId, const Position& pos, uint8_t stac
 	}
 
 	if (pos.x != 0xFFFF && !Position::areInRange<1, 1, 0>(pos, player->getPosition())) {
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(pos, listDir, 0, 1, true, true)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 											this, player->getID(), listDir)));
@@ -3422,7 +3439,7 @@ void Game::playerConfigureShowOffSocket(uint32_t playerId, const Position& pos, 
 	}
 
 	if (!Position::areInRange<1, 1, 0>(pos, player->getPosition())) {
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(pos, listDir, 0, 1, true, false)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk, this, player->getID(), listDir)));
 			SchedulerTask* task = createSchedulerTask(400,
@@ -3464,7 +3481,7 @@ void Game::playerSetShowOffSocket(uint32_t playerId, Outfit_t& outfit, const Pos
 	}
 
 	if (!Position::areInRange<1, 1, 0>(pos, player->getPosition())) {
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(pos, listDir, 0, 1, true, false)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk, this, player->getID(), listDir)));
 			SchedulerTask* task = createSchedulerTask(400,
@@ -3559,7 +3576,7 @@ void Game::playerWrapableItem(uint32_t playerId, const Position& pos, uint8_t st
 	}
 
 	if (pos.x != 0xFFFF && !Position::areInRange<1, 1, 0>(pos, player->getPosition())) {
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(pos, listDir, 0, 1, true, true)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 				this, player->getID(), listDir)));
@@ -3705,7 +3722,7 @@ void Game::playerBrowseField(uint32_t playerId, const Position& pos)
 	}
 
 	if (!Position::areInRange<1, 1>(playerPos, pos)) {
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(pos, listDir, 0, 1, true, true)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 											this, player->getID(), listDir)));
@@ -3943,7 +3960,7 @@ void Game::playerRequestTrade(uint32_t playerId, const Position& pos, uint8_t st
 	}
 
 	if (!Position::areInRange<1, 1>(tradeItemPosition, playerPosition)) {
-		std::forward_list<Direction> listDir;
+		std::vector<Direction> listDir;
 		if (player->getPathTo(pos, listDir, 0, 1, true, true)) {
 			g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk,
 											this, player->getID(), listDir)));
@@ -4210,10 +4227,11 @@ void Game::playerLookInTrade(uint32_t playerId, bool lookAtCounterOffer, uint8_t
 		return;
 	}
 
-	std::vector<const Container*> containers {tradeContainer};
+	std::vector<const Container*> containers{ tradeContainer };
+	containers.reserve(32);
 	size_t i = 0;
-	while (i < containers.size()) {
-		const Container* container = containers[i++];
+	do {
+		const Container* container = containers[i];
 		for (Item* item : container->getItemList()) {
 			Container* tmpContainer = item->getContainer();
 			if (tmpContainer) {
@@ -4225,7 +4243,7 @@ void Game::playerLookInTrade(uint32_t playerId, bool lookAtCounterOffer, uint8_t
 				return;
 			}
 		}
-	}
+	} while (++i < containers.size());
 }
 
 void Game::playerCloseTrade(uint32_t playerId)
@@ -4483,7 +4501,7 @@ void Game::playerQuickLoot(uint32_t playerId, const Position& pos, uint16_t spri
 	if (pos.x != 0xffff) {
 		if (!Position::areInRange<1, 1, 0>(pos, player->getPosition())) {
 			//need to walk to the corpse first before looting it
-			std::forward_list<Direction> listDir;
+			std::vector<Direction> listDir;
 			if (player->getPathTo(pos, listDir, 0, 1, true, true)) {
 				g_dispatcher.addTask(createTask(std::bind(&Game::playerAutoWalk, this, player->getID(), listDir)));
 				SchedulerTask* task = createSchedulerTask(0, std::bind(
@@ -8286,13 +8304,15 @@ void Game::parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, const st
 std::vector<Item*> Game::getMarketItemList(uint16_t wareId, uint16_t sufficientCount, DepotLocker* depotLocker)
 {
 	std::vector<Item*> itemList;
-	uint16_t count = 0;
+	itemList.reserve(std::max<size_t>(32, depotLocker->size()));
 
 	std::vector<Container*> containers{depotLocker};
+	containers.reserve(32);
 
+	uint16_t count = 0;
 	size_t i = 0;
 	do {
-		Container* container = containers[i++];
+		Container* container = containers[i];
 
 		for (Item* item : container->getItemList()) {
 			Container* c = item->getContainer();
@@ -8321,7 +8341,7 @@ std::vector<Item*> Game::getMarketItemList(uint16_t wareId, uint16_t sufficientC
 				return itemList;
 			}
 		}
-	} while (i < containers.size());
+	} while (++i < containers.size());
 
 	itemList.clear();
 	return itemList;
@@ -8472,7 +8492,7 @@ void Game::decreaseBrowseFieldRef(const Position& pos)
 	}
 }
 
-void Game::internalRemoveItems(std::vector<Item*> itemList, uint32_t amount, bool stackable)
+void Game::internalRemoveItems(std::vector<Item*>& itemList, uint32_t amount, bool stackable)
 {
 	if (stackable) {
 		for (Item* item : itemList) {
