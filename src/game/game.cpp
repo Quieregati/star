@@ -301,7 +301,7 @@ void Game::setGameState(GameState_t newState)
 				gameStore.startup();
 			}
 
-			size_t maxPlayers = static_cast<size_t>(g_config.getNumber(MAX_PLAYERS));
+			size_t maxPlayers = static_cast<size_t>(g_configManager().getNumber(MAX_PLAYERS));
 			if (maxPlayers > 0) {
 				players.reserve(maxPlayers);
 				mappedPlayerNames.reserve(maxPlayers);
@@ -2077,9 +2077,9 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 	if (money == 0) {
 		return true;
 	}
+	std::multimap<uint32_t, Item*> moneyMap;
 	std::vector<Container*> containers;
-	std::vector<std::pair<uint32_t, Item*>> moneyMap;
-	moneyMap.reserve(32);
+	containers.reserve(32);
 
 	uint64_t moneyCount = 0;
 	for (size_t i = cylinder->getFirstIndex(), j = cylinder->getLastIndex(); i < j; ++i) {
@@ -2098,16 +2098,14 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 			const uint32_t worth = item->getWorth();
 			if (worth != 0) {
 				moneyCount += worth;
-				moneyMap.emplace_back(worth, item);
+				moneyMap.emplace(worth, item);
 			}
 		}
 	}
-
-	if (moneyCount < money) {
-		size_t i = static_cast<size_t>(-1);
-		while (++i < containers.size()) {
-			Container* container = containers[i];
-			for (Item* item : container->getItemList()) {
+	size_t i = static_cast<size_t>(-1);
+	while (++i < containers.size()) {
+		Container* container = containers[i];
+		for (Item* item : container->getItemList()) {
 				Container* tmpContainer = item->getContainer();
 				if (tmpContainer) {
 					containers.push_back(tmpContainer);
@@ -2115,17 +2113,13 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 					const uint32_t worth = item->getWorth();
 					if (worth != 0) {
 						moneyCount += worth;
-						moneyMap.emplace_back(worth, item);
-						if (moneyCount >= money) {
-							goto HaveMoney;
-						}
+						moneyMap.emplace(worth, item);
 					}
 				}
 			}
 		}
 		if (moneyCount < money) {
 			return false;
-		}
 	}
 
 	Player* player = useBalance ? dynamic_cast<Player*>(cylinder) : nullptr;
@@ -2138,7 +2132,6 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 		return false;
 	}
 
-	HaveMoney:
 	for (const auto& moneyEntry : moneyMap) {
 		Item* item = moneyEntry.second;
 		if (moneyEntry.first < money) {

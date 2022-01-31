@@ -60,7 +60,7 @@ class Spells final : public BaseEvents
 
 		std::list<uint16_t> getSpellsByVocation(uint16_t vocationId);
 
-		const std::unordered_map<std::string, InstantSpell>& getInstantSpells() const {
+		const std::unordered_map<std::string, InstantSpell_ptr>& getInstantSpells() const {
 			return instants;
 		};
 
@@ -75,7 +75,7 @@ class Spells final : public BaseEvents
 		bool registerEvent(Event_ptr event, const pugi::xml_node& node) override;
 
 		std::map<uint16_t, RuneSpell> runes;
-		std::unordered_map<std::string, InstantSpell> instants;
+		std::unordered_map<std::string, InstantSpell_ptr> instants;
 
 		friend class CombatSpell;
 		LuaScriptInterface scriptInterface { "Spell Interface" };

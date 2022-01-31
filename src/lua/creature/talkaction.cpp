@@ -34,7 +34,7 @@ TalkActions::~TalkActions() {
 
 void TalkActions::clear(bool fromLua) {
 	for (auto it = talkActions.begin(); it != talkActions.end(); ) {
-		if (fromLua == it->second.fromLua) {
+		if (fromLua == it->second->fromLua) {
 			it = talkActions.erase(it);
 		} else {
 			++it;
@@ -65,24 +65,24 @@ bool TalkActions::registerEvent(Event_ptr event, const pugi::xml_node&) {
 
 	for (size_t i = 0; i < words.size(); i++) {
 		if (i == words.size() - 1) {
-			talkActions.emplace(words[i], std::move(*talkAction));
+			talkActions.emplace(words[i], std::move(talkAction));
 		} else {
-			talkActions.emplace(words[i], *talkAction);
+			talkActions.emplace(words[i], talkAction);
 		}
 	}
 
 	return true;
 }
 
-bool TalkActions::registerLuaEvent(TalkAction* event) {
+bool TalkActions::registerLuaEvent(TalkAction_ptr& event) {
 	TalkAction_ptr talkAction{ event };
 	std::vector<std::string> words = talkAction->getWordsMap();
 
 	for (size_t i = 0; i < words.size(); i++) {
 		if (i == words.size() - 1) {
-			talkActions.emplace(words[i], std::move(*talkAction));
+			talkActions.emplace(words[i], std::move(talkAction));
 		} else {
-			talkActions.emplace(words[i], *talkAction);
+			talkActions.emplace(words[i], talkAction);
 		}
 	}
 
@@ -101,12 +101,12 @@ TalkActionResult_t TalkActions::playerSaySpell(Player* player, SpeakClasses type
 		}
 		auto it = talkActions.find(instantWords);
 		if (it != talkActions.end()) {
-		char separator = it->second.getSeparator();
+		char separator = it->second->getSeparator();
 		if (separator != ' ' && !param.empty()) {
 			return TALKACTION_CONTINUE;
 		}
 
-		if (it->second.executeSay(player, instantWords, param, type)) {
+		if (it->second->executeSay(player, instantWords, param, type)) {
 			return TALKACTION_CONTINUE;
 		} else {
 			return TALKACTION_BREAK;

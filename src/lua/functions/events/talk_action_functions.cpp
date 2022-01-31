@@ -58,10 +58,9 @@ int TalkActionFunctions::luaTalkActionOnSay(lua_State* L) {
 int TalkActionFunctions::luaTalkActionRegister(lua_State* L) {
 	TalkAction** talkPtr = getRawUserdata<TalkAction>(L, 1);
 	if (talkPtr && *talkPtr) {
-		TalkAction* talk = *talkPtr;
+		TalkAction_ptr talk { *talkPtr };
 		if (!talk->isScripted()) {
 			pushBoolean(L, false);
-			delete talk;
 		} else {
 			pushBoolean(L, g_talkActions->registerLuaEvent(talk));
 		}
