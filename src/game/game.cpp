@@ -5996,6 +5996,19 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 			attackerMonster = nullptr;
 		}
 
+		if (attackerPlayer && !damage.extension) {
+			Item* weapon = attackerPlayer->getInventoryItem(CONST_SLOT_LEFT);
+			Item* quiver = attackerPlayer->getInventoryItem(CONST_SLOT_RIGHT);
+			if (weapon && weapon->getWeaponType() == WEAPON_DISTANCE && quiver && quiver->isQuiver()) {
+				const ItemType& it = Item::items[quiver->getID()];
+				uint8_t range = it.abilities->perfectShotRange;
+				if (range == Position::getDistanceX(targetPos, attackerPlayer->getPosition())
+				|| range == Position::getDistanceY(targetPos, attackerPlayer->getPosition())) {
+					damage.primary.value += it.abilities->perfectShotDamage;
+				}
+			}
+		}
+
 		if (attackerPlayer && targetMonster) {
 			const PreySlot* slot = attackerPlayer->getPreyWithMonster(targetMonster->getRaceId());
 			if (slot && slot->isOccupied() && slot->bonus == PreyBonus_Damage && slot->bonusTimeLeft > 0) {

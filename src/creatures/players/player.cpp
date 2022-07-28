@@ -2394,6 +2394,8 @@ BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_
 	}
 
 	if (damage > 0) {
+		CombatDamage reflectDamage;
+		bool isReflected = false;
 		for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_LAST; ++slot) {
 			if (!isItemAbilityEnabled(static_cast<Slots_t>(slot))) {
 				continue;
@@ -2427,19 +2429,15 @@ BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_
 						}
 					}
 				}
+
+				int32_t damageReflection = getDamageReflection();
 				if (attacker) {
-					const int16_t& reflectPercent = it.abilities->reflectPercent[combatTypeToIndex(combatType)];
-					if (reflectPercent != 0) {
-						CombatParams params;
-						params.combatType = combatType;
-						params.impactEffect = CONST_ME_MAGIC_BLUE;
-
-						CombatDamage reflectDamage;
-						reflectDamage.origin = ORIGIN_SPELL;
-						reflectDamage.primary.type = combatType;
-						reflectDamage.primary.value = std::round(-damage * (reflectPercent / 100.));
-
-						Combat::doCombatHealth(this, attacker, reflectDamage, params);
+					if (combatType == COMBAT_PHYSICALDAMAGE) {
+						if (damageReflection != 0) {
+							int32_t calculatedDamage = (attacker->getMaxHealth() * 0.01);
+							damageReflection >= calculatedDamage ? reflectDamage.primary.value = calculatedDamage : reflectDamage.primary.value = damageReflection;
+							isReflected = true;
+						}
 					}
 				}
 			}
@@ -2459,6 +2457,15 @@ BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_
 				}
 			}
 
+		}
+
+		if (isReflected) {
+			CombatParams params;
+			params.combatType = COMBAT_PHYSICALDAMAGE;
+			params.impactEffect = CONST_ME_REDSMOKE;
+			reflectDamage.origin = ORIGIN_REFLECT;
+			reflectDamage.primary.type = COMBAT_PHYSICALDAMAGE;
+			Combat::doCombatHealth(this, attacker, reflectDamage, params);
 		}
 
 		if (damage <= 0) {
@@ -6121,6 +6128,25 @@ Item* Player::getItemFromDepotSearch(uint16_t itemId, const Position& pos)
 	}
 
 	return nullptr;
+}
+
+int32_t Player::getDamageReflection() {
+	int32_t result = 0;
+	for (int32_t i = CONST_SLOT_FIRST; i <= CONST_SLOT_LAST; ++i) {
+		Item* item = inventory[i];
+		if (!item || !isItemAbilityEnabled(static_cast<Slots_t>(i))) {
+			continue;
+		}
+
+		const ItemType& it = Item::items[item->getID()];
+		if (it.abilities) {
+			int32_t reflect = it.abilities->damageReflection;
+			if (reflect != 0) {
+				result += reflect;
+			}
+		}
+	}
+	return result;
 }
 
 /*******************************************************************************

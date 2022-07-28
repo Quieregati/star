@@ -74,6 +74,12 @@ void ItemParse::initParse(const std::string& tmpStrValue, pugi::xml_node attribu
 	ItemParse::parseWalk(tmpStrValue, valueAttribute, itemType);
 	ItemParse::parseAllowDistanceRead(tmpStrValue, valueAttribute, itemType);
 	ItemParse::parseImbuement(tmpStrValue, attributeNode, valueAttribute, itemType);
+	ItemParse::parseDamageReflection(tmpStrValue, valueAttribute, itemType);
+	ItemParse::parsePerfectShotDamage(tmpStrValue, valueAttribute, itemType);
+	ItemParse::parsePerfectShotRange(tmpStrValue, valueAttribute, itemType);
+	ItemParse::parseCleavePercent(tmpStrValue, valueAttribute, itemType);
+	//ItemParse::parseMagicShieldCapacity(tmpStrValue, valueAttribute, itemType);
+	//ItemParse::parseElementalMagicLevel(tmpStrValue, valueAttribute, itemType);
 }
 
 void ItemParse::parseType(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType) {
@@ -830,5 +836,33 @@ void ItemParse::parseImbuement(const std::string& tmpStrValue, pugi::xml_node at
 						valueAttribute.as_string());
 		}
 
+	}
+}
+
+void ItemParse::parseDamageReflection(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType) {
+	std::string stringValue = tmpStrValue;
+	if (stringValue == "damagereflection") {
+		itemType.getAbilities().damageReflection = pugi::cast<int32_t>(valueAttribute.value());
+	}
+}
+
+void ItemParse::parsePerfectShotDamage(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType) {
+	std::string stringValue = tmpStrValue;
+	if (stringValue == "perfectshotdamage") {
+		itemType.getAbilities().perfectShotDamage = pugi::cast<int32_t>(valueAttribute.value());
+	}
+}
+
+void ItemParse::parsePerfectShotRange(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType) {
+	std::string stringValue = tmpStrValue;
+	if (stringValue == "perfectshotrange") {
+		itemType.getAbilities().perfectShotRange = pugi::cast<uint8_t>(valueAttribute.value());
+	}
+}
+
+void ItemParse::parseCleavePercent(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType) {
+	std::string stringValue = tmpStrValue;
+	if (stringValue == "cleavepercent") {
+		itemType.getAbilities().cleavePercent += pugi::cast<int32_t>(valueAttribute.value());
 	}
 }

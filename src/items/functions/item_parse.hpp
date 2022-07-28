@@ -147,6 +147,22 @@ const phmap::flat_hash_map<std::string, ItemParseAttributes_t> ItemParseAttribut
 	{"blocking", ITEM_PARSE_BLOCK_SOLID},
 	{"allowdistread", ITEM_PARSE_ALLOWDISTREAD},
 	{"imbuementslot", ITEM_PARSE_IMBUEMENT},
+	{"damagereflection", ITEM_PARSE_DAMAGEREFLECTION},
+	{"perfectshotdamage", ITEM_PARSE_PERFECTSHOTDAMAGE},
+	{"perfectshotrange", ITEM_PARSE_PERFECTSHOTRANGE},
+	{"cleavepercent", ITEM_PARSE_CLEAVE},
+	/*
+	{"magicshieldcapacitypercent", ITEM_PARSE_MAGICSHIELDCAPACITYPERCENT},
+	{"magicshieldcapacityflat", ITEM_PARSE_MAGICHIELDCAPACITY_FLAT},
+	{"deathmagiclevelpoints", ITEM_PARSE_DEATHMAGICLEVELPOINTS},
+	{"energymagiclevelpoints", ITEM_PARSE_PERFECTSHOTRANGE},
+	{"earthmagiclevelpoints", ITEM_PARSE_EARTHMAGICLEVELPOINTS},
+	{"firemagiclevelpoints", ITEM_PARSE_FIREMAGICLEVELPOINTS},
+	{"holymagiclevelpoints", ITEM_PARSE_HEALINGMAGICLEVELPOINTS},
+	{"healingmagiclevelpoints", ITEM_PARSE_HOLYMAGICLEVELPOINTS},
+	{"icemagiclevelpoints", ITEM_PARSE_ICEMAGICLEVELPOINTS},
+	{"physicalmagiclevelpoints", ITEM_PARSE_PHYSICALMAGICLEVELPOINTS},
+	*/
 };
 
 const phmap::flat_hash_map<std::string, ItemTypes_t> ItemTypesMap = {
@@ -288,6 +304,12 @@ class ItemParse : public Items
 	static void parseWalk(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
 	static void parseAllowDistanceRead(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
 	static void parseImbuement(const std::string& tmpStrValue, pugi::xml_node attributeNode, pugi::xml_attribute valueAttribute, ItemType& itemType);
+	static void parseDamageReflection(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
+	static void parsePerfectShotDamage(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
+	static void parsePerfectShotRange(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
+	static void parseCleavePercent(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
+	//static void parseMagicShieldCapacity(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
+	//static void parseElementalMagicLevel(const std::string& tmpStrValue, pugi::xml_attribute valueAttribute, ItemType& itemType);
 
 	private:
 	// Parent of the function: static void parseField

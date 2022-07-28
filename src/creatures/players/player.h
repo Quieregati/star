@@ -2089,6 +2089,9 @@ class Player final : public Creature, public Cylinder
 			lastDepotSearchInteraction = OTSYS_TIME();
 		}
 
+		// 12.70 Eldritch skills
+		int32_t getDamageReflection();
+
 	private:
 		std::forward_list<Condition*> getMuteConditions() const;
 
