@@ -3058,10 +3058,12 @@ void ProtocolGame::sendCyclopediaCharacterCombatStats()
 	}
 
 	// Version 12.81 new skill (Fatal, Dodge and Momentum)
-	for (uint8_t i = 1; i <= 3; ++i) {
-		msg.add<uint16_t>(0);
-		msg.add<uint16_t>(0);
-	}
+	msg.add<uint16_t>(player->getFatalChance() < 0 ? 0 : player->getFatalChance() * 100);
+	msg.add<uint16_t>(player->getFatalChance() < 0 ? 0 : player->getFatalChance() * 100);
+	msg.add<uint16_t>(player->getDodgeChance() < 0 ? 0 : player->getDodgeChance() * 100);
+	msg.add<uint16_t>(player->getDodgeChance() < 0 ? 0 : player->getDodgeChance() * 100);
+	msg.add<uint16_t>(player->getMomentumChance() < 0 ? 0 : player->getMomentumChance() * 100);
+	msg.add<uint16_t>(player->getMomentumChance() < 0 ? 0 : player->getMomentumChance() * 100);
 
 	// Cleave (12.70)
 	msg.add<uint16_t>(0);
